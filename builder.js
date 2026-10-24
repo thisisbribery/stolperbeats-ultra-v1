@@ -20,7 +20,7 @@ const MODULE = {
   FOLD:[[36,[0,10,18,26]],[20,[0,6,10,14]],[28,[0,9,14,19]],[20,[0,7,10,13]],[16,[0,6,8,10]],[20,[0,8,10,12]]]
 };
 const STYLES = [
-  {key:"HOPP", blurb:"MPC / Linn 16th swing", hw:false},
+  {key:"HOPP", blurb:"MPC / Linn 16th swing", hw:true},
   {key:"DEEP", blurb:"two-level swing: 8ths, then the 16ths inside them", hw:true},
   {key:"SQEZ", blurb:"the & and a squeeze up against the next downbeat", hw:true},
   {key:"CLSTR", blurb:"e, & and a cluster mid-beat on a tuplet grid", hw:true},

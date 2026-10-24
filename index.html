@@ -282,7 +282,8 @@ dialog.risk::backdrop{background:rgba(0,0,0,.55)}
   <h3>How it works</h3>
   <p>The page holds only the added code, the places where the firmware calls into it, a few switches inside it, and the timing-table values the visualiser shows. No part of the official firmware is included. After your file passes the version check, the mods are written into a copy in memory and checked against the expected SHA-256 for your exact combination, then your tables are written on top.</p>
   <h3>What's been tested</h3>
-  <p>With all four mods on, the code is byte for byte the test build that has run on a real module (ratchet, pitch and fill test build t6). With Push = DEEP and Clave = SQEZ the whole file is identical to it. The other combinations leave out some of the engine's call sites and flip up to seven small switches inside it. They were checked by running the module's own code in a Cortex-M7 emulator (extra ratchet hits, MIDI notes, Fill on and off, the CV 6 gate, and fills that play the same in every build), but haven't run on hardware yet. Every alt table except HOPP has run on a real module.</p>
+  <p>Everything on this page has been tested on my own Stolperbeats: all five alt tables, ratchets, pitch, fill mode and the fill CV gate. With all four mods on, the code is byte for byte the build that runs on my module, and with Push = DEEP and Clave = SQEZ the whole file is identical to it.</p>
+  <p>The only thing not tried on hardware is picking and choosing: a build with only some of the mods. Those builds use the same tested code, with nothing new added. Leaving a mod out puts the firmware's own original call back where the mod would hook in, or flips a small switch in the engine that skips that mod's part. Every combination was checked by running the module's own code in a Cortex-M7 emulator: ratchet hits, MIDI notes, Fill on and off, the CV 6 gate, and fills that play the same in every build.</p>
   <h3>Known differences when mods are installed</h3>
   <p>With Ratchets: the Shuffle encoder sets ratchets in Pattern Edit instead of changing the shuffle. With Pitch: Tap in Pattern Edit shows the step's pitch instead of tapping the tempo. With Fill: Linear + Tap switches Fill mode, and while Fill mode is on, tap tempo is off (the tempo encoder still works). Everything else plays exactly like the firmware it was built on.</p>
 </footer>
@@ -429,7 +430,7 @@ function drawSlots(){
     const notes = rows && !bad.length ? B.rowsNotes(rows) : [];
     d.querySelector('.meta').innerHTML = bad.length ? `<span class="bad">Can't build: ${esc(bad[0])}.</span>` :
       `Ticks per beat, Shuffle 0 to 6: <span style="font-family:var(--mono)">${rows.map(r => r.ticksPerBeat).join(' ')}</span>` + (notes.length ? `<br><span class="amber">${esc(notes.join('; '))}</span>` : '') +
-      (ch === 'HOPP' ? '<br>Not yet tested on a real module.' : '');
+      '';
     d.querySelector('select').addEventListener('change', e => { picks[slot] = e.target.value; invalidate(); render(); });
     slotsEl.appendChild(d);
   }
@@ -538,7 +539,7 @@ async function build(){
     rs.className = 'status show ok';
     rs.innerHTML = `<b>&#10003; Built and verified.</b> ${B.anyCode(s) ? 'The code mods match the reference build for this combination' : 'No code mods'}${changed.length ? `, and ${changed.length} table bytes changed on ${B.SLOTS.filter(x => picks[x] !== 'Factory').join(', ')}` : ''}.` +
       `<div class="fname" style="margin-top:6px">${esc(builtName)}</div><div class="kv">SHA-256 ${builtHash}${B.anyCode(s) ? `<br>code mods ${ch}` : ''}</div>` +
-      (s.ratchets && s.pitch && s.fill && s.fillcv ? '<div class="warnbox">All four mods: the same code as the test build that has run on a real module.</div>' : B.anyCode(s) ? '<div class="warnbox">This mod combination has been verified in emulation, not yet on hardware. If anything misbehaves, flash the official file to go back.</div>' : '');
+      (s.ratchets && s.pitch && s.fill && s.fillcv ? '<div class="warnbox">All four mods: the same code that has been tested on my own module.</div>' : B.anyCode(s) ? '<div class="warnbox">Every mod has been tested on my own module with all four installed. This pick of mods uses the same code with some of it switched off, checked in emulation rather than on hardware. If anything misbehaves, flash the official file to go back.</div>' : '');
     document.getElementById('dlBtn').disabled = false; document.getElementById('notesBtn').disabled = false;
   } catch(err) { fail(esc(err.message || String(err))); }
   drawFlash();

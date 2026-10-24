@@ -41,9 +41,8 @@ Ratchets and pitch are saved to `PatternExtNNN.txt` next to each `PatternBankNNN
 
 ## What's been tested
 
-- With all four mods on, the code is byte for byte the ratchet, pitch and fill test build that has run on a real module. With Push = DEEP and Clave = SQEZ, the whole file is identical to it.
-- The other combinations use the same engine, leave out some of its call sites and flip up to seven small switches inside it. They were checked by running the module's own code in a Cortex-M7 emulator: ratchet hits, MIDI notes, Fill on and off, the CV 6 gate, and fills that play the same in every build. They haven't run on hardware yet.
-- DEEP, SQEZ, CLSTR and FOLD have run on a real module. HOPP hasn't yet.
+- Everything has been tested on my own Stolperbeats: all five alt tables, ratchets, pitch, fill mode and the fill CV gate. With all four mods on, the code is byte for byte the build that runs on my module; with Push = DEEP and Clave = SQEZ the whole file is identical to it.
+- The only thing not tried on hardware is a build with only some of the mods. Those builds add nothing new: leaving a mod out puts the firmware's own original call back, or flips one of seven small switches in the engine that skips that mod's part. Every combination was checked by running the module's own code in a Cortex-M7 emulator: ratchet hits, MIDI notes, Fill on and off, the CV 6 gate, and fills that play the same in every build.
 
 ## Known differences
 
