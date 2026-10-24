@@ -1,0 +1,817 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stolperbeats ULTRA Flasher</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="assets/favicon-64.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta name="description" content="Build a modded Stolperbeats firmware in your browser from your own copy of the official firmware: alt swing tables, ratchets, MIDI pitch and fill mode.">
+<style>
+:root{
+  --bg:#f6f4ef; --panel:#ffffff; --ink:#1d1f22; --muted:#62666d; --line:#dedad1; --soft:#efece4;
+  --accent:var(--pink); --ok:#2b8a3e; --bad:#c92a2a; --warn:#b35c00;
+  --free:#f1eee6; --used:#c9c4b8; --map-bg:#fbfaf7;
+  --c-engine:var(--pink); --c-core:var(--pink); --c-ext:#7048e8; --c-ratchets:#e8590c; --c-pitch:#3b5bdb; --c-fill:#2f9e44; --c-fillcv:#0c8599; --c-tables:#d4a400; --c-switch:#868e96;
+  --pink:#ff1fd6;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121417; --panel:#1a1d21; --ink:#e9e7e2; --muted:#9aa0a8; --line:#2c3036; --soft:#22262b;
+    --ok:#69db7c; --bad:#ff8787; --warn:#ffa94d;
+    --free:#1f2328; --used:#3d434b; --map-bg:#16191c;
+    --c-ext:#b197fc; --c-ratchets:#ff922b; --c-pitch:#748ffc; --c-fill:#51cf66; --c-fillcv:#3bc9db; --c-tables:#fcc419; --c-switch:#adb5bd;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121417; --panel:#1a1d21; --ink:#e9e7e2; --muted:#9aa0a8; --line:#2c3036; --soft:#22262b;
+  --ok:#69db7c; --bad:#ff8787; --warn:#ffa94d;
+  --free:#1f2328; --used:#3d434b; --map-bg:#16191c;
+  --c-ext:#b197fc; --c-ratchets:#ff922b; --c-pitch:#748ffc; --c-fill:#51cf66; --c-fillcv:#3bc9db; --c-tables:#fcc419; --c-switch:#adb5bd;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
+code{font-family:var(--mono);font-size:.92em}
+.wrap{max-width:1080px;margin:0 auto;padding:28px 16px 64px}
+header{display:flex;gap:18px;align-items:center;margin-bottom:22px}
+.logo{flex:0 0 auto;width:56px;height:56px}
+h1{font-size:30px;line-height:1.1;margin:0;letter-spacing:-.01em}
+h1 .ultra{color:var(--accent);letter-spacing:.04em}
+.sub{color:var(--muted);margin:4px 0 0}
+.privacy{display:inline-flex;gap:8px;align-items:center;margin-top:10px;font-size:13px;color:var(--muted);background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:4px 12px}
+.privacy b{color:var(--ink);font-weight:600}
+.step{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;margin:16px 0}
+.step h2{font-size:18px;margin:0 0 4px;display:flex;align-items:center;gap:10px}
+.num{display:inline-grid;place-items:center;flex:0 0 auto;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--panel);font:600 14px var(--sans)}
+.hint{color:var(--muted);margin:0 0 14px;font-size:14.5px}
+.drop{display:block;border:2px dashed var(--line);border-radius:12px;padding:26px 16px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--soft)}
+.drop strong{display:block;font-size:16px}
+.drop span{color:var(--muted);font-size:14px}
+.status{margin-top:14px;border-radius:10px;padding:12px 14px;font-size:14.5px;display:none}
+.status.show{display:block}
+.status.ok{background:color-mix(in srgb,var(--ok) 12%,transparent);border:1px solid color-mix(in srgb,var(--ok) 40%,transparent)}
+.status.bad{background:color-mix(in srgb,var(--bad) 12%,transparent);border:1px solid color-mix(in srgb,var(--bad) 40%,transparent)}
+.status.info{background:var(--soft);border:1px solid var(--line)}
+.kv{font-family:var(--mono);font-size:12.5px;word-break:break-all;color:var(--muted);margin-top:6px}
+/* timing slots */
+.slots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.slot{border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:8px;align-content:start}
+.slot.changed{border-color:var(--c-tables);box-shadow:inset 4px 0 0 var(--c-tables)}
+.slot.badslot{border-color:var(--warn);box-shadow:inset 4px 0 0 var(--warn)}
+.slot .lbl{font:700 12px var(--mono);letter-spacing:.08em;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.slot .lbl b{color:var(--ink)}
+select{font:15px var(--sans);width:100%;padding:9px 10px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+.slot svg{width:100%;height:auto;display:block;background:var(--map-bg);border:1px solid var(--line);border-radius:8px}
+.slot .meta{font-size:13px;color:var(--muted)}
+.slot .meta .bad{color:var(--warn);font-weight:600}
+.slot .meta .amber{color:var(--warn)}
+.tablebar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 14px}
+/* mods */
+.mods{display:grid;gap:12px}
+.mod{display:grid;grid-template-columns:auto 1fr;gap:14px;border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer;position:relative;transition:border-color .15s,box-shadow .15s}
+.mod:hover{border-color:color-mix(in srgb,var(--mc) 55%,var(--line))}
+.mod.on{border-color:var(--mc);box-shadow:inset 4px 0 0 var(--mc)}
+.mod input{position:absolute;opacity:0;pointer-events:none}
+.tog{width:42px;height:24px;border-radius:999px;background:var(--used);position:relative;margin-top:2px;transition:background .15s}
+.tog::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--panel);transition:left .15s}
+.mod.on .tog{background:var(--mc)}
+.mod.on .tog::after{left:21px}
+.mod.locked .tog{opacity:.45}
+.mod.locked{cursor:default;opacity:.8}
+.lockmsg{display:none;margin-top:6px;font-size:13px;font-weight:600;color:var(--warn)}
+.mod.locked .lockmsg{display:block}
+.mod input:focus-visible + .tog{outline:2px solid var(--accent);outline-offset:2px}
+.mod h3{margin:0;font-size:16.5px;display:flex;flex-wrap:wrap;gap:8px;align-items:baseline}
+.tag{font:500 11.5px var(--mono);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 6px}
+.mod p{margin:4px 0 0;font-size:14.5px}
+.ctl{margin-top:8px;font-size:14px;background:var(--soft);border-radius:8px;padding:8px 10px}
+.ctl b{font-weight:600}
+.ctl ul{margin:4px 0 0;padding-left:18px}
+.ctl li{margin:2px 0}
+.note{margin-top:6px;font-size:13.5px;color:var(--muted)}
+.glow{display:inline-flex;gap:4px;vertical-align:middle;margin:0 2px}
+.glow i{width:9px;height:9px;border-radius:50%;background:var(--c-fill);animation:breathe 3.2s ease-in-out infinite}
+.glow i:nth-child(2){animation-delay:.12s}.glow i:nth-child(3){animation-delay:.24s}.glow i:nth-child(4){animation-delay:.36s}
+@keyframes breathe{0%,100%{opacity:.18;box-shadow:none}50%{opacity:1;box-shadow:0 0 8px var(--c-fill)}}
+@media (prefers-reduced-motion:reduce){.glow i{animation:none;opacity:.7}}
+.levels{width:100%;border-collapse:collapse;margin-top:8px;font-size:13.5px}
+.levels th,.levels td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.levels th{color:var(--muted);font-weight:500}
+/* map */
+.mapwrap{position:relative}
+canvas#map{width:100%;display:block;border-radius:10px;background:var(--map-bg);border:1px solid var(--line);touch-action:none}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--panel);font:12px/1.45 var(--mono);padding:7px 9px;border-radius:7px;max-width:340px;white-space:pre-line;display:none;z-index:2;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin:12px 0 0;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.stats{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.stat{background:var(--soft);border-radius:10px;padding:8px 12px;min-width:120px}
+.stat b{display:block;font:600 19px var(--mono)}
+.stat span{font-size:12.5px;color:var(--muted)}
+details{margin-top:14px}
+summary{cursor:pointer;font-size:14.5px;color:var(--accent)}
+table.sites{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
+table.sites th,table.sites td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+table.sites th{color:var(--muted);font-weight:500}
+td.mono{font-family:var(--mono);white-space:nowrap}
+.tablewrap{overflow-x:auto}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+.build{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+button,.btn{font:600 15px var(--sans);border:0;border-radius:10px;padding:12px 18px;cursor:pointer;background:var(--accent);color:var(--panel);text-decoration:none;display:inline-block}
+button.secondary,.btn.secondary{background:var(--soft);color:var(--ink);border:1px solid var(--line)}
+button.small,.btn.small{font-size:13.5px;padding:8px 12px;border-radius:8px}
+button:disabled{opacity:.45;cursor:not-allowed}
+.result{margin-top:14px;display:none}
+.result.show{display:block}
+.fname{font:600 14px var(--mono);word-break:break-all}
+.warnbox{border-left:3px solid var(--warn);padding:2px 0 2px 12px;margin:10px 0;font-size:14px}
+.okc{color:var(--ok);font-weight:700}
+ol.how{margin:0 0 14px;padding-left:20px;font-size:14.5px}
+ol.how li{margin:3px 0}
+pre.cmd{font:12.5px/1.5 var(--mono);background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:10px 12px;overflow-x:auto;margin:10px 0 0;white-space:pre}
+progress{width:100%;height:10px;margin-top:12px;accent-color:var(--accent)}
+footer{color:var(--muted);font-size:13.5px;margin-top:28px}
+footer h3{color:var(--ink);font-size:14.5px;margin:18px 0 4px}
+footer p{margin:4px 0}
+.topwarn{background:#b3261e;color:#fff;text-align:center;font-size:14px;line-height:1.45;padding:10px 16px}
+.topwarn b{font-weight:700;letter-spacing:.01em}
+.byline{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.coinlink{display:inline-flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:4px 14px 4px 4px;font-size:14px;line-height:1.25}
+.coinlink:hover{border-color:var(--pink)}
+.coinlink b{font-weight:700}
+.coinlink small{display:block;white-space:nowrap;color:var(--muted);font-size:12.5px}
+.coin{display:block;width:40px;height:40px;perspective:220px;flex:0 0 auto}
+.coin-inner{display:block;position:relative;width:100%;height:100%;transform-style:preserve-3d;animation:coinspin 4s steps(24) infinite}
+.coinlink:hover .coin-inner{animation-duration:2s}
+.coin img{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.coin img{transform:translateZ(2.5px)}
+.coin .back{transform:rotateY(180deg) translateZ(2.5px)}
+.coin .edge{display:block;position:absolute;left:50%;top:8%;width:5px;height:84%;margin-left:-2.5px;background:linear-gradient(#9a9a9a,#6f6f6f 50%,#4a4a4a);transform:rotateY(90deg)}
+@keyframes coinspin{to{transform:rotateY(360deg)}}
+@media (prefers-reduced-motion:reduce){.coin-inner{animation:none}}
+.more{margin-top:10px}
+.more summary{color:var(--mc);font-weight:600;font-size:14px;list-style:none;display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.more summary::-webkit-details-marker{display:none}
+.more summary::before{content:"\25B8";display:inline-block;transition:transform .15s}
+.more[open] summary::before{transform:rotate(90deg)}
+.more dl{margin:8px 0 0;font-size:14.5px}
+.more dt{font-weight:600}
+.more dd{margin:0 0 10px}
+.fold{margin:16px 0}
+.fold>summary{list-style:none;color:inherit;font-size:inherit}
+.fold>summary::-webkit-details-marker{display:none}
+.fold>summary h2{margin:0}
+.fold[open]>summary h2{margin-bottom:4px}
+.chev{margin-left:auto;color:var(--accent);font-size:22px;line-height:1;transition:transform .15s}
+.fold[open] .chev{transform:rotate(90deg)}
+.themebtn{margin-left:auto;background:var(--soft);color:var(--ink);border:1px solid var(--line);padding:7px 11px;font-size:13px;border-radius:8px}
+.disclaim{border:1px solid color-mix(in srgb,var(--bad) 40%,var(--line));background:color-mix(in srgb,var(--bad) 6%,var(--panel))}
+.disclaim ul{margin:6px 0 12px;padding-left:20px;font-size:14.5px}
+.disclaim li{margin:3px 0}
+.agree{display:flex;gap:10px;align-items:flex-start;font-weight:600;font-size:14.5px;cursor:pointer}
+.agree input{width:18px;height:18px;margin-top:2px;accent-color:var(--accent)}
+.gated{transition:opacity .2s}
+body:not(.agreed) .gated{opacity:.4;pointer-events:none;user-select:none}
+@media (max-width:720px){
+  .slots{grid-template-columns:1fr}
+}
+@media (max-width:640px){
+  h1{font-size:24px}
+  .logo{width:44px;height:44px}
+  .step{padding:16px}
+  .mod{padding:12px}
+  header{flex-wrap:wrap}
+  .themebtn{margin-left:0}
+}
+</style>
+</head>
+<body>
+<div class="topwarn" role="note"><b>Unofficial, modified firmware.</b> Use it entirely at your own risk. The author accepts no responsibility for any damage, malfunction, lost patterns or settings, or warranty issues that may result.</div>
+<div class="wrap">
+<div class="byline">
+  <a class="coinlink" href="https://www.instagram.com/thisisbribery/" target="_blank" rel="noopener">
+    <span class="coin" aria-hidden="true"><span class="coin-inner"><img src="assets/coin-front.png" alt=""><span class="edge"></span><img class="back" src="assets/coin-back.png" alt=""></span></span>
+    <span>Mods by <b>Bribery</b><small>@thisisbribery on Instagram &#8599;</small></span>
+  </a>
+  <button class="themebtn" id="themeBtn" type="button" aria-label="Toggle colour theme">Theme</button>
+</div>
+<header>
+  <svg class="logo" viewBox="0 0 64 64" aria-hidden="true">
+    <rect x="4" y="4" width="56" height="56" rx="12" fill="var(--soft)" stroke="var(--accent)" stroke-width="3"/>
+    <rect x="12" y="36" width="6" height="16" rx="2" fill="var(--accent)"/>
+    <rect x="22" y="28" width="6" height="24" rx="2" fill="var(--accent)" opacity=".75"/>
+    <rect x="35" y="20" width="6" height="32" rx="2" fill="var(--accent)"/>
+    <rect x="46" y="12" width="6" height="40" rx="2" fill="var(--accent)" opacity=".75"/>
+    <path d="M12 30 L20 22 L31 18 L44 9" fill="none" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="1 5"/>
+  </svg>
+  <div>
+    <h1>Stolperbeats <span class="ultra">ULTRA</span> flasher</h1>
+    <p class="sub">Alt swing tables, ratchets, MIDI pitch and fill mode, added to your own copy of the official Stolperbeats firmware.</p>
+    <div class="privacy">&#128274; <span><b>Runs entirely in your browser.</b> Your firmware is never uploaded, and this site hosts none.</span></div>
+  </div>
+</header>
+
+<section class="step disclaim" id="step0">
+  <h2><span class="num">!</span>Read this first</h2>
+  <ul>
+    <li>This is <b>unofficial, modified firmware</b>. It isn't made, endorsed or supported by Making Sound Machines.</li>
+    <li>This site <b>does not provide any firmware</b>. You bring your own copy of the official file; the page changes it in your browser and hands it back.</li>
+    <li>Flashing modified firmware may affect your warranty. Keep your official file: flashing it again always puts the module back to stock.</li>
+    <li>Back up your SD card before you play with the new features. Ratchets and pitch are saved in new side files next to your pattern banks.</li>
+  </ul>
+  <label class="agree"><input type="checkbox" id="agree"> I understand, and I'm using this entirely at my own risk.</label>
+</section>
+
+<div class="gated" id="gated">
+<section class="step" id="step1">
+  <h2><span class="num">1</span>Load your official firmware</h2>
+  <p class="hint">Use the unmodified <code>_MSM_stolperbeats_hw_rev4-163.bin</code> from <a href="https://makingsoundmachines.com/firmware/" target="_blank" rel="noopener">Making Sound Machines</a>. Other versions and already-modded files (including Firmware lab builds) are refused, because every patch targets exact addresses.</p>
+  <label class="drop" id="drop" tabindex="0">
+    <strong>Drop the .bin here or click to choose</strong>
+    <span>Checked against the known SHA-256 of firmware 163</span>
+    <input type="file" id="file" accept=".bin,application/octet-stream" hidden>
+  </label>
+  <div class="status" id="status"></div>
+</section>
+
+<section class="step" id="step2">
+  <h2><span class="num">2</span>Swing tables on the Timing buttons</h2>
+  <p class="hint">Put any table on any of the four Timing buttons: the factory ones, the alt tables from the visualiser, your own Timings from the <a href="https://thisisbribery.github.io/stolperbeats_v2/" target="_blank" rel="noopener">visualiser's CREATOR</a>, or a <code>.timing.json</code> you upload. Each button keeps its other behaviour (accents, Rolls). The picture shows where the 8 steps of a half bar land at Shuffle 1 to 6.</p>
+  <div class="tablebar">
+    <button class="secondary small" id="uploadBtn" type="button">Upload custom (.timing.json)</button>
+    <input type="file" id="timingFile" accept=".json,application/json" multiple hidden>
+    <a class="btn secondary small" href="https://thisisbribery.github.io/stolperbeats_v2/" target="_blank" rel="noopener">Make your own in the visualiser &#8599;</a>
+    <button class="secondary small" id="resetTables" type="button">All factory</button>
+  </div>
+  <div class="slots" id="slots"></div>
+  <div class="status" id="tableStatus"></div>
+</section>
+
+<section class="step" id="step3">
+  <h2><span class="num">3</span>Choose your mods</h2>
+  <p class="hint">Mix them freely. Fill CV needs Fill mode. All four share one engine that is added once; switching a mod off leaves its controls exactly as stock.</p>
+  <div class="mods" id="mods"></div>
+</section>
+
+<details class="step fold" id="step4">
+  <summary><h2><span class="num">4</span>See what changes<span class="chev" aria-hidden="true">&#9656;</span></h2></summary>
+  <p class="hint">The whole flash image, one square per 256 bytes. Grey is code and data already in the firmware, pale is empty space, and colours show what your selection writes. Hover or tap a square for details.</p>
+  <div class="mapwrap">
+    <canvas id="map" height="300" aria-label="Firmware flash map"></canvas>
+    <div class="tip" id="tip"></div>
+  </div>
+  <div class="legend" id="legend"></div>
+  <div class="stats" id="stats"></div>
+  <details>
+    <summary>List every change</summary>
+    <div class="tablewrap"><table class="sites" id="sites"><thead><tr><th>Address</th><th>Bytes</th><th>Part</th><th>What it is</th></tr></thead><tbody></tbody></table></div>
+  </details>
+</details>
+
+<section class="step" id="step5">
+  <h2><span class="num">5</span>Build and download</h2>
+  <p class="hint">The code mods are checked against the expected SHA-256 for your exact combination before anything is written. Then your tables go on top.</p>
+  <div class="build">
+    <button id="buildBtn" type="button" disabled>Build ULTRA firmware</button>
+    <span class="hint" id="buildHint" style="margin:0">Load the official firmware first.</span>
+  </div>
+  <div class="result" id="result">
+    <div class="status show" id="resultStatus"></div>
+    <div class="build" style="margin-top:12px">
+      <button id="dlBtn" type="button">Download firmware</button>
+      <button id="notesBtn" type="button" class="secondary">Download build notes</button>
+      <button id="recipeBtn" type="button" class="secondary">Save recipe</button>
+    </div>
+  </div>
+  <details>
+    <summary>Recipes: share your picks, never the firmware</summary>
+    <p class="hint" style="margin-top:8px">A recipe is a small <code>.json</code> with your table picks, the rows of any custom tables, and your mods. Anyone can open it here with their own official file and build the same firmware. The visualiser's Firmware lab recipes open here too.</p>
+    <div class="build"><button class="secondary small" id="recipeOpen" type="button">Open a recipe</button><input type="file" id="recipeFile" accept=".json,application/json" hidden></div>
+  </details>
+</section>
+
+<section class="step" id="step6">
+  <h2><span class="num">6</span>Flash it over USB</h2>
+  <p class="hint">Chrome or Edge on a computer can flash the module straight from this page (WebUSB). Anywhere else, use <code>dfu-util</code> the way the manual describes.</p>
+  <ol class="how">
+    <li>Connect the module to your computer with USB, rack powered.</li>
+    <li>Hold <b>BOOT</b>, press and release <b>RESET</b>, then let go of <b>BOOT</b>. The module is now in its bootloader.</li>
+    <li>Click <b>Connect</b> and pick <b>STM32 BOOTLOADER</b> (or <b>DFU in FS Mode</b>).</li>
+    <li>Click <b>Flash my build</b>. The page erases only the sectors it needs, writes, reads everything back to check it byte for byte, then restarts the module.</li>
+  </ol>
+  <div class="build">
+    <button id="connectBtn" type="button" class="secondary">Connect</button>
+    <button id="flashBtn" type="button" disabled>Flash my build</button>
+    <button id="restoreBtn" type="button" class="secondary" disabled>Flash official file</button>
+  </div>
+  <progress id="prog" value="0" max="1" hidden></progress>
+  <div class="status" id="flashStatus"></div>
+  <pre class="cmd" id="dfuCmd">sudo dfu-util -a 0 -s 0x08000000 -D your-build.bin</pre>
+  <p class="hint" style="margin-top:10px">The STM32 bootloader lives in the chip's ROM, so a bad flash can always be undone: do BOOT and RESET again and flash the official file.</p>
+</section>
+</div>
+
+<footer>
+  <h3>Before you flash</h3>
+  <p>Stolperbeats is designed and made by <a href="https://makingsoundmachines.com/stolperbeats/" target="_blank" rel="noopener">Making Sound Machines</a>, and all rights in the module, its firmware and its documentation remain theirs. STOLPERBEATS ULTRA is an unofficial, community-made modification for education. It isn't affiliated with, endorsed by or supported by Making Sound Machines.</p>
+  <p>Please don't contact Making Sound Machines for help with modified firmware. If you need support, flash the official firmware first. Flashing modified firmware is entirely at your own risk and may affect your warranty.</p>
+  <p>Keep your original <code>_MSM_stolperbeats_hw_rev4-163.bin</code>. To go back to stock, flash it again.</p>
+  <h3>How it works</h3>
+  <p>The page holds only the added code, the places where the firmware calls into it, a few switches inside it, and the timing-table values the visualiser shows. No part of the official firmware is included. After your file passes the version check, the mods are written into a copy in memory and checked against the expected SHA-256 for your exact combination, then your tables are written on top.</p>
+  <h3>What's been tested</h3>
+  <p>With all four mods on, the code is byte for byte the test build that has run on a real module (ratchet, pitch and fill test build t6). With Push = DEEP and Clave = SQEZ the whole file is identical to it. The other combinations leave out some of the engine's call sites and flip up to seven small switches inside it. They were checked by running the module's own code in a Cortex-M7 emulator (extra ratchet hits, MIDI notes, Fill on and off, the CV 6 gate, and fills that play the same in every build), but haven't run on hardware yet. Every alt table except HOPP has run on a real module.</p>
+  <h3>Known differences when mods are installed</h3>
+  <p>With Ratchets: the Shuffle encoder sets ratchets in Pattern Edit instead of changing the shuffle. With Pitch: Tap in Pattern Edit shows the step's pitch instead of tapping the tempo. With Fill: Linear + Tap switches Fill mode, and while Fill mode is on, tap tempo is off (the tempo encoder still works). Everything else plays exactly like the firmware it was built on.</p>
+</footer>
+</div>
+
+<script src="mods.js"></script>
+<script src="builder.js"></script>
+<script>
+(function(){
+"use strict";
+const U = window.ULTRA, B = window.UltraBuilder, BASE = U.base, CELL = 256;
+const VIS = "https://thisisbribery.github.io/stolperbeats_v2/";
+
+const MODS = [
+  {key:'ratchets', title:'Ratchets', tag:'per step · all six tracks',
+   text:'Each step can fire 1, 2, 3 or 4 hits. The extra hits land on whole ticks inside the step, so they swing with the Timing. They play on the trigger outs and on MIDI.',
+   ctl:'<b>In Pattern Edit, turn Shuffle</b> to set the ratchet on the step under the cursor. The cursor step flashes once per hit. Ratchets follow Pattern Edit’s keep and discard: release on the slow blink to keep them, on the fast blink to throw them away.',
+   note:'Saved on the SD card in <code>PatternExtNNN.txt</code> next to each <code>PatternBankNNN.txt</code> when the module saves its banks (on Stop), and loaded at power on. Your PatternBank files stay in the module’s own format. Hihat 2 ratchets rest while the Rolls Feel is on.',
+   more:`<p style="margin:8px 0 0;font-size:14.5px">You can program ratchets in the <a href="${VIS}" target="_blank" rel="noopener">visualiser</a> too: pick <b>RATCHET</b> above the grid, then download the bank. It zips the PatternBank file and its PatternExt side file, ready for the card.</p>`,
+   moreTitle:'Program them in the visualiser'},
+  {key:'pitch', title:'Pitch mode', tag:'MIDI out only',
+   text:'Give any step its own MIDI note, up to two octaves either way. Melodic hats, tuned percs, kick slides. The trigger outs have no pitch, so this only changes the MIDI note.',
+   ctl:'<b>In Pattern Edit, hold Tap and turn a track’s encoder</b> to set the pitch of the step under the cursor, −24 to +24 semitones. The number shows on the bottom rows of LEDs. Tap on its own shows the step’s pitch. Keep and discard work like ratchets.',
+   note:'Saved in the same <code>PatternExtNNN.txt</code> side file as ratchets.',
+   more:`<p style="margin:8px 0 0;font-size:14.5px">In the <a href="${VIS}" target="_blank" rel="noopener">visualiser</a>, pick <b>PITCH</b> above the grid and drag a hit up or down. The side file uses one signed number per step, for example <code>HIHAT1 &gt; PTN0 PITCH: 0 0 +12 0 …</code></p>`,
+   moreTitle:'Program it in the visualiser'},
+  {key:'fill', title:'Fill mode', tag:'Kick · Snare · Hihat 1',
+   text:'A fill on demand. It plays variations on top of your pattern, from the next step to the end of the bar. Nothing is stored: your pattern is untouched and every fill comes out different.',
+   ctl:`<ul>
+     <li><b>Fill mode on or off: hold Linear and press Tap.</b> Linear itself doesn’t change. While Fill mode is on, the Shuffle LEDs glow and breathe slowly <span class="glow" aria-hidden="true"><i></i><i></i><i></i><i></i></span> so you always know it’s armed.</li>
+     <li><b>Fire a fill: press Tap.</b> Hold Tap to keep it going into the next bars.</li>
+     <li><b>Pick the level: hold Tap and turn Shuffle</b>, 1 to 5. The number shows on the bottom rows. You can change it while a fill plays.</li></ul>`,
+   note:'Tap tempo is off while Fill mode is on; the tempo encoder still works. Fill mode and the level are saved in <code>MachineState.txt</code> and come back at power on (needs <code>WRITE_MACHINE_STATE</code> on in <code>MachineConfig.txt</code>). With Fill mode off, the module plays exactly as without the mod.',
+   more:`<table class="levels"><thead><tr><th>Level</th><th>Name</th><th>What it does</th></tr></thead><tbody>
+     <tr><td>1</td><td>Ghost</td><td>Soft snare and hat hits on the “e” and “a”, at 25 to 45% of the track’s MIDI velocity. Kick untouched.</td></tr>
+     <tr><td>2</td><td>Push</td><td>Hats on every 16th, snare in groups of 3 through the second half of the bar, and a pickup kick on step 16 (sometimes 15).</td></tr>
+     <tr><td>3</td><td>Burst</td><td>Random hits, busier toward the end of the bar and on the “e” and “a”, with some 2 or 3 hit ratchets.</td></tr>
+     <tr><td>4</td><td>Build</td><td>Hits, ratchets and velocity climb to the downbeat, with 4-hit ratchets near the end. The snare’s MIDI note steps up 0, +3, +5, +7 semitones per beat, like toms.</td></tr>
+     <tr><td>5</td><td>Chaos</td><td>Stutter: plays the first beat of the fill, then repeats its first two steps, then hammers its first step. Adds gaps, extra hits, 2 to 4 hit ratchets and octave jumps on MIDI.</td></tr></tbody></table>
+     <p style="margin:8px 0 0;font-size:14px">Your own Kick, Snare and Hihat 1 hits always play, except where Chaos drops one for a gap. Muted tracks stay silent. Fills bring their own ratchets and MIDI pitch, so they work without the Ratchets and Pitch mods.</p>`,
+   moreTitle:'The five fill levels'},
+  {key:'fillcv', title:'Fill CV gate', tag:'Pattern CV 6', needs:'fill',
+   text:'Fire fills from a gate or clock. While Fill mode is on, Pattern CV 6 (Perc 2’s pattern input) becomes a Fill gate.',
+   ctl:'A <b>rising gate fires a fill</b> and a <b>gate held high keeps it going</b>. It switches on above about 1.5 V and off below about 1 V. With Fill mode off, CV 6 picks Perc 2’s pattern as normal.',
+   note:'While Fill mode is on, CV 6 no longer picks Perc 2’s pattern. Leave this mod off to keep CV 6 as a pattern input all the time.',
+   lock:'Needs Fill mode'}
+];
+const COLOR = k => getComputedStyle(document.documentElement).getPropertyValue('--c-'+k).trim();
+const sel = {ratchets:true, pitch:true, fill:true, fillcv:true};
+const picks = {Trip:'Factory', Shake:'Factory', Push:'Factory', Clave:'Factory'};
+let uploaded = {}, mine = {}, stock = null, stockName = '', built = null, builtName = '', builtHash = '', builtCodeHash = '';
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const hx = n => '0x' + n.toString(16).toUpperCase().padStart(8,'0');
+
+/* ---------- disclaimer gate ---------- */
+const agree = document.getElementById('agree');
+try { if (sessionStorage.getItem('ultra-agreed') === '1') agree.checked = true; } catch(e) {}
+function gate(){ document.body.classList.toggle('agreed', agree.checked); try { sessionStorage.setItem('ultra-agreed', agree.checked ? '1' : '0'); } catch(e) {} }
+agree.addEventListener('change', gate); gate();
+
+/* ---------- SHA-256 (WebCrypto, with a small fallback) ---------- */
+async function sha256(buf){
+  if (window.crypto && crypto.subtle) { try { return toHex(new Uint8Array(await crypto.subtle.digest('SHA-256', buf))); } catch(e) {} }
+  return sha256js(buf);
+}
+function toHex(u8){ return Array.from(u8, b => b.toString(16).padStart(2,'0')).join(''); }
+function sha256js(u8){
+  const K=new Uint32Array([0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2]);
+  const H=new Uint32Array([0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19]);
+  const l=u8.length, n=((l+9+63)>>6)<<6, m=new Uint8Array(n); m.set(u8); m[l]=0x80;
+  const dv=new DataView(m.buffer); dv.setUint32(n-4,(l*8)>>>0); dv.setUint32(n-8,Math.floor(l/0x20000000));
+  const w=new Uint32Array(64), r=(x,c)=>(x>>>c)|(x<<(32-c));
+  for(let o=0;o<n;o+=64){
+    for(let i=0;i<16;i++) w[i]=dv.getUint32(o+i*4);
+    for(let i=16;i<64;i++){ const a=w[i-15],b=w[i-2]; w[i]=(w[i-16]+(r(a,7)^r(a,18)^(a>>>3))+w[i-7]+(r(b,17)^r(b,19)^(b>>>10)))>>>0; }
+    let [a,b,c,d,e,f,g,h]=H;
+    for(let i=0;i<64;i++){
+      const t1=(h+(r(e,6)^r(e,11)^r(e,25))+((e&f)^(~e&g))+K[i]+w[i])>>>0, t2=((r(a,2)^r(a,13)^r(a,22))+((a&b)^(a&c)^(b&c)))>>>0;
+      h=g;g=f;f=e;e=(d+t1)>>>0;d=c;c=b;b=a;a=(t1+t2)>>>0;
+    }
+    H[0]+=a;H[1]+=b;H[2]+=c;H[3]+=d;H[4]+=e;H[5]+=f;H[6]+=g;H[7]+=h;
+  }
+  return Array.from(H,x=>x.toString(16).padStart(8,'0')).join('');
+}
+
+/* ---------- custom tables: your visualiser Timings (same site, same browser) and uploads ---------- */
+const RESERVED = new Set(['TRIP','SHAKE','PUSH','CLAVE','HOPP','DEEP','SQEZ','CLSTR','FOLD','FACTO','DRAFT','STRAI','UNTIT']);
+const validLevel = L => !!L && B.GRIDS.includes(L.N) && Array.isArray(L.pos) && L.pos.length === 8 && L.pos[0] === 0 &&
+  L.pos.every((p,k) => Number.isInteger(p) && (k === 0 || p > L.pos[k-1])) && L.pos[7] < 2*L.N;
+function loadMine(){
+  mine = {};
+  try {
+    const a = JSON.parse(localStorage.getItem('stolperbeats-shuffle-map:mine'));
+    if (Array.isArray(a)) for (const t of a) if (t && /^[A-Z0-9]{1,5}$/.test(t.key) && !RESERVED.has(t.key) && Array.isArray(t.levels) && t.levels.length === 6 && t.levels.every(validLevel))
+      mine[t.key] = B.rowsFromLevels(t.levels);
+  } catch(e) {}
+}
+function loadUploaded(){ try { const o = JSON.parse(localStorage.getItem('stolperbeats-ultra:uploaded')) || {}; for (const [k,rows] of Object.entries(o)) if (!B.rowsProblems(rows).length) uploaded[k] = rows; } catch(e) {} }
+function saveUploaded(){ try { localStorage.setItem('stolperbeats-ultra:uploaded', JSON.stringify(uploaded)); } catch(e) {} }
+loadMine(); loadUploaded();
+const customs = () => Object.assign({}, mine, uploaded);   // uploads win on a name clash
+function freeName(nm){ let n = B.cleanName(nm) || 'MINE'; if (RESERVED.has(n)) n = ('U' + n).slice(0,5); return n; }
+
+/* ---------- timing slots ---------- */
+const slotsEl = document.getElementById('slots'), tableStatus = document.getElementById('tableStatus');
+function tmsg(html, cls){ tableStatus.className = 'status show ' + (cls || 'info'); tableStatus.innerHTML = html; }
+function rowsOf(slot){ return B.rowsFor(picks[slot], slot, customs()); }
+function sourceOf(choice){ if (choice === 'Factory' || choice.startsWith('Factory ')) return 'factory'; if (B.MODULE[choice]) return 'alt'; if (uploaded[choice]) return 'uploaded'; return 'mine'; }
+function previewSVG(rows){
+  const W = 300, rowH = 13, top = 6, H = top + rowH*6 + 4, x0 = 34, w = W - x0 - 8;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Step positions at Shuffle 1 to 6">`;
+  s += `<line x1="${x0 + w/2}" y1="2" x2="${x0 + w/2}" y2="${H-2}" stroke="var(--line)" stroke-dasharray="2 3"/>`;
+  for (let L = 1; L <= 6; L++) {
+    const r = rows[L], y = top + (L-1)*rowH + rowH/2, N2 = 2*r.ticksPerBeat;
+    s += `<text x="4" y="${y+4}" font-size="10" font-family="ui-monospace,Menlo,monospace" fill="var(--muted)">${L}</text>`;
+    s += `<line x1="${x0}" y1="${y}" x2="${x0+w}" y2="${y}" stroke="var(--line)"/>`;
+    let p = 0;
+    for (let k = 0; k < 8; k++) {
+      const x = x0 + w * p / N2, beat = k === 0 || k === 4;
+      s += `<circle cx="${x.toFixed(1)}" cy="${y}" r="${beat ? 3.6 : 2.8}" fill="${beat ? 'var(--ink)' : 'var(--accent)'}"/>`;
+      p += r.stepLengths[k];
+    }
+    s += `<text x="${W-4}" y="${y+4}" font-size="9" text-anchor="end" font-family="ui-monospace,Menlo,monospace" fill="var(--muted)">${r.ticksPerBeat}</text>`;
+  }
+  return s + '</svg>';
+}
+function slotProblems(slot){ try { return B.rowsProblems(rowsOf(slot)); } catch(e) { return [e.message]; } }
+function drawSlots(){
+  slotsEl.innerHTML = '';
+  const cs = customs(), mineK = Object.keys(mine).filter(k => !uploaded[k]), upK = Object.keys(uploaded);
+  for (const slot of B.SLOTS) {
+    if (!(picks[slot] === 'Factory' || picks[slot].startsWith('Factory ') || B.MODULE[picks[slot]] || cs[picks[slot]])) picks[slot] = 'Factory';
+    const ch = picks[slot], bad = slotProblems(slot), d = document.createElement('div');
+    d.className = 'slot' + (bad.length ? ' badslot' : ch === 'Factory' ? '' : ' changed');
+    const opt = (v, l) => `<option value="${esc(v)}"${v === ch ? ' selected' : ''}>${esc(l)}</option>`;
+    d.innerHTML = `<div class="lbl"><span><b>${slot.toUpperCase()}</b> BUTTON</span><span>${ch === 'Factory' ? 'factory' : sourceOf(ch) === 'factory' ? 'factory table' : sourceOf(ch)}</span></div>
+      <select aria-label="${slot} button plays">${opt('Factory', 'Factory ' + slot)}
+        <optgroup label="Other factory tables">${B.SLOTS.filter(x => x !== slot).map(x => opt('Factory ' + x, 'Factory ' + x)).join('')}</optgroup>
+        <optgroup label="Alt tables (visualiser)">${B.STYLES.map(s => opt(s.key, `${s.key}: ${s.blurb}`)).join('')}</optgroup>
+        ${mineK.length ? `<optgroup label="Yours, from the visualiser's creator">${mineK.map(k => opt(k, k)).join('')}</optgroup>` : ''}
+        ${upK.length ? `<optgroup label="Uploaded">${upK.map(k => opt(k, k)).join('')}</optgroup>` : ''}
+      </select><div class="pv"></div><div class="meta"></div>`;
+    let rows = null; try { rows = rowsOf(slot); } catch(e) {}
+    if (rows && !bad.length) d.querySelector('.pv').innerHTML = previewSVG(rows);
+    const notes = rows && !bad.length ? B.rowsNotes(rows) : [];
+    d.querySelector('.meta').innerHTML = bad.length ? `<span class="bad">Can't build: ${esc(bad[0])}.</span>` :
+      `Ticks per beat, Shuffle 0 to 6: <span style="font-family:var(--mono)">${rows.map(r => r.ticksPerBeat).join(' ')}</span>` + (notes.length ? `<br><span class="amber">${esc(notes.join('; '))}</span>` : '') +
+      (ch === 'HOPP' ? '<br>Not yet tested on a real module.' : '');
+    d.querySelector('select').addEventListener('change', e => { picks[slot] = e.target.value; invalidate(); render(); });
+    slotsEl.appendChild(d);
+  }
+  if (!Object.keys(mine).length && !tableStatus.classList.contains('show'))
+    tmsg(`Timings you save in the <a href="${VIS}" target="_blank" rel="noopener">visualiser's CREATOR</a> (in this browser) show up here under <b>Yours</b>. Or export one there as <code>.timing.json</code> and upload it.`, 'info');
+}
+document.getElementById('uploadBtn').addEventListener('click', () => document.getElementById('timingFile').click());
+document.getElementById('timingFile').addEventListener('change', async e => {
+  const files = [...e.target.files]; e.target.value = ''; const ok = [], bad = [];
+  for (const f of files) {
+    try {
+      const obj = JSON.parse(await f.text());
+      if (obj && (obj.stolperbeatsUltraRecipe || obj.stolperbeatsFirmwareRecipe)) { openRecipe(obj); continue; }
+      const t = B.parseTimingFile(obj, f.name.replace(/\.timing\.json$|\.json$/i, ''));
+      const nm = freeName(t.name); uploaded[nm] = t.rows; ok.push(nm);
+    } catch(err) { bad.push(`${esc(f.name)}: ${esc(err.message || 'not a timing file')}`); }
+  }
+  saveUploaded();
+  if (ok.length) { const free = B.SLOTS.find(s => picks[s] === 'Factory'); tmsg(`<span class="okc">&#10003;</span> Added ${ok.map(esc).join(', ')} under <b>Uploaded</b>. Pick ${ok.length > 1 ? 'them' : 'it'} on any Timing button below.` + (bad.length ? `<br><span style="color:var(--bad)">${bad.join('<br>')}</span>` : ''), 'ok'); }
+  else if (bad.length) tmsg(`Couldn't use that file. ${bad.join('<br>')}`, 'bad');
+  invalidate(); render();
+});
+document.getElementById('resetTables').addEventListener('click', () => { for (const s of B.SLOTS) picks[s] = 'Factory'; invalidate(); render(); });
+window.addEventListener('storage', e => { if (e.key === 'stolperbeats-shuffle-map:mine') { loadMine(); render(); } });
+window.addEventListener('focus', () => { const before = JSON.stringify(Object.keys(mine)); loadMine(); if (JSON.stringify(Object.keys(mine)) !== before) render(); });
+
+/* ---------- mods ---------- */
+const modsEl = document.getElementById('mods'), cards = {};
+for (const m of MODS) {
+  const el = document.createElement('div');
+  el.className = 'mod'; el.style.setProperty('--mc', `var(--c-${m.key})`);
+  el.innerHTML = `<input type="checkbox" data-k="${m.key}" aria-label="${m.title}"><span class="tog"></span>
+    <div><h3>${m.title} <span class="tag">${m.tag}</span></h3>
+    <p>${m.text}</p><div class="ctl">${m.ctl}</div><div class="note">${m.note}</div>
+    ${m.lock ? `<div class="lockmsg">${m.lock}</div>` : ''}
+    ${m.more ? `<details class="more"><summary>${m.moreTitle}</summary>${m.more}</details>` : ''}</div>`;
+  const cb = el.querySelector('input'); cb.checked = sel[m.key];
+  el.addEventListener('click', e => { if (e.target.closest('details') || e.target.closest('a') || e.target === cb || cb.disabled) return; cb.checked = !cb.checked; cb.dispatchEvent(new Event('change')); });
+  cb.addEventListener('change', () => { sel[m.key] = cb.checked; syncMods(); invalidate(); render(); });
+  modsEl.appendChild(el); cards[m.key] = {el, cb};
+}
+function syncMods(){
+  for (const [k, {el, cb}] of Object.entries(cards)) {
+    const locked = k === 'fillcv' && !sel.fill;
+    cb.checked = !!sel[k] && !locked; el.classList.toggle('on', cb.checked);
+    el.classList.toggle('locked', locked); cb.disabled = locked;
+  }
+}
+const effSel = () => ({ratchets:sel.ratchets, pitch:sel.pitch, fill:sel.fill, fillcv:sel.fill && sel.fillcv});
+syncMods();
+
+/* ---------- file ---------- */
+const drop = document.getElementById('drop'), fileIn = document.getElementById('file'), statusEl = document.getElementById('status');
+drop.addEventListener('click', e => { if (e.target !== fileIn) fileIn.click(); });
+drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileIn.click(); } });
+['dragenter','dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) load(f); });
+fileIn.addEventListener('change', () => { if (fileIn.files[0]) load(fileIn.files[0]); fileIn.value = ''; });
+async function load(f){
+  const buf = new Uint8Array(await f.arrayBuffer()), h = await sha256(buf);
+  stock = null; invalidate(); statusEl.className = 'status show';
+  if (h === U.sha256 && buf.length === U.size && B.checkFactoryTables(buf)) {
+    stock = buf; stockName = f.name; statusEl.classList.add('ok');
+    statusEl.innerHTML = `<b>&#10003; Official Stolperbeats firmware 163 confirmed.</b> ${esc(f.name)}, ${buf.length.toLocaleString()} bytes. Found the four factory Timing tables at ${hx(B.STEP_TABLE)} and the ticks-per-beat table at ${hx(B.N_TABLE)}.<div class="kv">SHA-256 ${h}</div>`;
+  } else {
+    statusEl.classList.add('bad');
+    const known = {'ca9d723fe8d08699e574479d5b379c9a8f744857231d91d3650672dc81bfaee9':'test build 164','a06e99b25edf1b5a8af465b2d644166685b9d54856cb5ac5555bcd74e0f7755f':'test build 165','c9a4cb13ad51b2215f484efef4105a410292e340861bf48438a8304bf78295a9':'test build 166','88484f674571b17ef57b4d0c6a55be3b1b4ab6dc4ff891e22307d91149b72afb':'the ratchet, pitch and fill test build'}[h];
+    statusEl.innerHTML = `<b>&#10007; This isn’t the official Stolperbeats firmware 163.</b> ${esc(f.name)}, ${buf.length.toLocaleString()} bytes${known ? `. It looks like ${known}` : ''}. Load the unmodified file from Making Sound Machines. Already-modded files and other versions can’t be patched.<div class="kv">SHA-256 ${h}<br>expected ${U.sha256}</div>`;
+  }
+  render();
+}
+
+/* ---------- what changes ---------- */
+const NAME = {engine:'Added engine (shared)', core:'Engine call sites (shared)', ext:'PatternExt side file (ratchets and pitch)', pitch:'Pitch edit on the track encoders', fill:'Fill mode', switch:'Switch inside the engine (mod off)', tables:'Timing tables'};
+function allWrites(){
+  const out = B.codeWrites(U, effSel()).map(w => ({...w, part: w.kind === 'engine' ? 'engine' : w.kind === 'switch' ? 'switch' : w.group}));
+  let tw = [];
+  try { tw = B.tableWrites(picks, customs()); } catch(e) {}
+  const groups = new Map();
+  for (const w of tw) { const g = groups.get(w.why.split(':')[0]) || {addr:BASE + w.o, end:BASE + w.o, n:0, why:w.why.split(':')[0]}; g.addr = Math.min(g.addr, BASE + w.o); g.end = Math.max(g.end, BASE + w.o); g.n++; groups.set(g.why, g); }
+  for (const g of groups.values()) out.push({addr:g.addr, len:g.end - g.addr + 1, part:'tables', why:g.why + ': step lengths and ticks per beat', kind:'table'});
+  return out;
+}
+const canvas = document.getElementById('map'), ctx = canvas.getContext('2d'), tip = document.getElementById('tip');
+const MAPSIZE = U.engineStart - BASE + atob(U.engine).length, NCELL = Math.ceil(MAPSIZE / CELL);
+let geo = null, cells = [];
+function layout(){
+  const w = canvas.clientWidth || 600, cols = w < 520 ? 48 : 72, rows = Math.ceil(NCELL/cols);
+  const gap = 1, cs = Math.max(3, Math.floor((w - (cols-1)*gap) / cols)), dpr = window.devicePixelRatio || 1, hgt = rows*cs + (rows-1)*gap;
+  canvas.style.height = hgt + 'px'; canvas.width = Math.round(w*dpr); canvas.height = Math.round(hgt*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  geo = {cols, rows, cs, gap, ox: Math.floor((w - (cols*cs + (cols-1)*gap))/2)};
+}
+function cellInfo(){
+  const c = new Array(NCELL);
+  for (let i = 0; i < NCELL; i++) c[i] = {used:null, past:i*CELL >= U.size, hits:[]};
+  if (stock) for (let i = 0; i < NCELL; i++) { if (c[i].past) { c[i].used = false; continue; } let u = false; const s = i*CELL, e = Math.min(U.size, s+CELL); for (let j = s; j < e; j++) if (stock[j] && stock[j] !== 0xff) { u = true; break; } c[i].used = u; }
+  for (const w of allWrites()) { const s = w.addr - BASE, e = s + w.len; for (let k = Math.floor(s/CELL); k <= Math.floor((e-1)/CELL); k++) if (c[k]) c[k].hits.push(w); }
+  return c;
+}
+function drawMap(){
+  layout(); cells = cellInfo();
+  const {cols,cs,gap,ox} = geo, w = canvas.clientWidth, css = getComputedStyle(document.documentElement);
+  ctx.clearRect(0,0,w,canvas.height);
+  const used = css.getPropertyValue('--used').trim(), freeC = css.getPropertyValue('--free').trim(), ink = css.getPropertyValue('--ink').trim();
+  for (let i = 0; i < NCELL; i++) {
+    const x = ox + (i%cols)*(cs+gap), y = Math.floor(i/cols)*(cs+gap), c = cells[i];
+    ctx.globalAlpha = c.used === null || c.past ? .55 : 1; ctx.fillStyle = c.used ? used : freeC; ctx.fillRect(x,y,cs,cs); ctx.globalAlpha = 1;
+    if (c.hits.length) {
+      const top = c.hits.find(h => h.part === 'switch') || c.hits.find(h => h.part === 'tables') || c.hits[c.hits.length-1], big = c.hits.some(h => h.len > 16);
+      ctx.fillStyle = COLOR(top.part === 'engine' ? 'engine' : top.part); ctx.fillRect(x,y,cs,cs);
+      if (!big || top.part === 'switch') { ctx.strokeStyle = ink; ctx.lineWidth = 1; ctx.strokeRect(x+.5,y+.5,cs-1,cs-1); }
+    }
+  }
+}
+function hitTest(px,py){ if (!geo) return -1; const {cols,cs,gap,ox} = geo, cx = Math.floor((px-ox)/(cs+gap)), cy = Math.floor(py/(cs+gap)); if (cx<0||cx>=cols||cy<0) return -1; const i = cy*cols+cx; return i < NCELL ? i : -1; }
+function showTip(e){
+  const r = canvas.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top, i = hitTest(px,py);
+  if (i < 0) { tip.style.display = 'none'; return; }
+  const a = BASE + i*CELL, c = cells[i];
+  let t = `${hx(a)} to ${hx(a+CELL-1)}\n` + (c.past ? 'Past the end of the official image' : c.used === null ? 'Load firmware to see stock contents' : c.used ? 'Stock: code or data' : 'Stock: empty space');
+  const seen = new Set();
+  for (const h of c.hits) { const k = h.why + h.part; if (seen.has(k)) continue; seen.add(k); t += `\n● ${NAME[h.part]}: ${h.why} (${h.len} B)`; }
+  tip.textContent = t; tip.style.display = 'block';
+  const tw = tip.offsetWidth, th = tip.offsetHeight, W = canvas.parentElement.clientWidth;
+  tip.style.left = Math.min(W - tw, Math.max(0, px + 12)) + 'px';
+  tip.style.top = (py + 14 + th > canvas.clientHeight + 40 ? py - th - 10 : py + 14) + 'px';
+}
+canvas.addEventListener('pointermove', showTip); canvas.addEventListener('pointerdown', showTip);
+canvas.addEventListener('pointerleave', () => tip.style.display = 'none');
+window.addEventListener('resize', () => { if (document.getElementById('step4').open) drawMap(); });
+document.getElementById('step4').addEventListener('toggle', e => { if (e.target.open) drawMap(); });
+
+/* ---------- render ---------- */
+const anyTable = () => B.SLOTS.some(s => picks[s] !== 'Factory');
+function render(){
+  drawSlots();
+  if (document.getElementById('step4').open) drawMap();
+  const ws = allWrites(), present = new Set(ws.map(w => w.part));
+  document.getElementById('legend').innerHTML =
+    `<span><i style="background:var(--used)"></i>Stock code / data</span><span><i style="background:var(--free);border:1px solid var(--line)"></i>Empty</span>` +
+    ['engine','core','ext','pitch','fill','switch','tables'].filter(k => present.has(k)).map(k => `<span><i style="background:var(--c-${k})"></i>${NAME[k]}</span>`).join('') +
+    `<span><i style="background:transparent;outline:1.5px solid var(--ink);outline-offset:-1.5px"></i>Outlined: small edit</span>`;
+  const bytes = ws.reduce((s,w) => s + w.len, 0), added = ws.filter(w => w.part === 'engine').reduce((s,w) => s + w.len, 0), sites = ws.filter(w => w.kind === 'hook').length;
+  document.getElementById('stats').innerHTML =
+    `<div class="stat"><b>${added.toLocaleString()}</b><span>bytes of added code</span></div>` +
+    `<div class="stat"><b>${sites}</b><span>call sites redirected</span></div>` +
+    `<div class="stat"><b>${ws.filter(w => w.part === 'switch').length}</b><span>engine switches flipped</span></div>` +
+    `<div class="stat"><b>${B.SLOTS.filter(s => picks[s] !== 'Factory').length}</b><span>Timing buttons changed</span></div>`;
+  document.querySelector('#sites tbody').innerHTML = ws.slice().sort((a,b) => a.addr - b.addr).map(w =>
+    `<tr><td class="mono">${hx(w.addr)}</td><td class="mono">${w.len}</td><td><span class="dot" style="background:var(--c-${w.part === 'engine' ? 'engine' : w.part})"></span>${NAME[w.part]}</td><td>${esc(w.why)}</td></tr>`).join('') ||
+    '<tr><td colspan="4">Nothing selected.</td></tr>';
+  const badSlot = B.SLOTS.find(s => slotProblems(s).length), anything = B.anyCode(effSel()) || anyTable();
+  const bb = document.getElementById('buildBtn'), hint = document.getElementById('buildHint');
+  bb.disabled = !stock || !anything || !!badSlot;
+  hint.textContent = !stock ? 'Load the official firmware first.' : badSlot ? `Fix the ${badSlot} button first.` : !anything ? 'Pick a table or a mod.' : 'Ready.';
+  drawFlash();
+}
+function invalidate(){ built = null; document.getElementById('result').classList.remove('show'); drawFlash(); }
+
+/* ---------- build ---------- */
+function tagName(){
+  const s = effSel(), m = [s.ratchets && 'ratchet', s.pitch && 'pitch', s.fill && 'fill', s.fillcv && 'fillcv'].filter(Boolean);
+  const t = B.SLOTS.filter(x => picks[x] !== 'Factory').map(x => x + picks[x].replace(/^Factory /, ''));
+  return `stolperbeats-ultra-163${m.length ? '-' + m.join('-') : ''}${t.length ? '-' + t.join('-') : ''}.bin`;
+}
+document.getElementById('buildBtn').addEventListener('click', async () => {
+  const rs = document.getElementById('resultStatus'); document.getElementById('result').classList.add('show');
+  const fail = (msg, extra) => { built = null; rs.className = 'status show bad'; rs.innerHTML = `<b>Not built.</b> ${msg}` + (extra || ''); document.getElementById('dlBtn').disabled = true; document.getElementById('notesBtn').disabled = true; drawFlash(); };
+  try {
+    const s = effSel(), code = B.codeImage(U, stock, s), ch = await sha256(code), want = U.expected[B.keyOf(s)];
+    if (ch !== want) return fail('The code mods don’t match the reference for this combination, so the download is blocked.', `<div class="kv">got ${ch}<br>expected ${want}</div>`);
+    const {image, changed} = B.withTables(code, picks, customs());
+    for (let i = 0; i < image.length; i++) if (image[i] !== code[i] && !changed.some(w => w.o === i)) return fail('A table write landed outside the tables.');
+    built = image; builtName = tagName(); builtCodeHash = ch; builtHash = await sha256(image);
+    rs.className = 'status show ok';
+    rs.innerHTML = `<b>&#10003; Built and verified.</b> ${B.anyCode(s) ? 'The code mods match the reference build for this combination' : 'No code mods'}${changed.length ? `, and ${changed.length} table bytes changed on ${B.SLOTS.filter(x => picks[x] !== 'Factory').join(', ')}` : ''}.` +
+      `<div class="fname" style="margin-top:6px">${esc(builtName)}</div><div class="kv">SHA-256 ${builtHash}${B.anyCode(s) ? `<br>code mods ${ch}` : ''}</div>` +
+      (s.ratchets && s.pitch && s.fill && s.fillcv ? '<div class="warnbox">All four mods: the same code as the test build that has run on a real module.</div>' : B.anyCode(s) ? '<div class="warnbox">This mod combination has been verified in emulation, not yet on hardware. If anything misbehaves, flash the official file to go back.</div>' : '');
+    document.getElementById('dlBtn').disabled = false; document.getElementById('notesBtn').disabled = false;
+  } catch(err) { fail(esc(err.message || String(err))); }
+  drawFlash();
+});
+function save(name, data, type){
+  const url = URL.createObjectURL(new Blob([data], {type})), a = document.createElement('a');
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+document.getElementById('dlBtn').addEventListener('click', () => { if (built) save(builtName, built, 'application/octet-stream'); });
+document.getElementById('notesBtn').addEventListener('click', () => {
+  if (!built) return;
+  const strip = h => h.replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim(), s = effSel();
+  const L = ['STOLPERBEATS ULTRA: build notes', '', 'Firmware: ' + builtName, 'Base: official Stolperbeats firmware 163 (SHA-256 ' + U.sha256 + ')', 'Result SHA-256: ' + builtHash, '', 'Timing buttons:'];
+  for (const x of B.SLOTS) { const r = rowsOf(x); L.push(`  ${x}: ${picks[x] === 'Factory' ? 'factory ' + x : picks[x]}  (ticks per beat ${r.map(q => q.ticksPerBeat).join(' ')})`); }
+  L.push('', 'Mods:');
+  const on = MODS.filter(m => m.key === 'fillcv' ? s.fillcv : s[m.key]);
+  if (!on.length) L.push('  none');
+  for (const m of on) L.push('', '* ' + m.title, '  ' + strip(m.text), '  Controls: ' + strip(m.ctl), '  Note: ' + strip(m.note));
+  L.push('', 'Rollback: flash your original _MSM_stolperbeats_hw_rev4-163.bin.', 'Unofficial community modification by Bribery (@thisisbribery). Not affiliated with, endorsed by or supported by Making Sound Machines. Use entirely at your own risk.');
+  save(builtName.replace(/\.bin$/, '.notes.txt'), L.join('\n'), 'text/plain');
+});
+/* recipes */
+function recipe(){
+  const custom = {}; for (const x of B.SLOTS) { const c = picks[x]; if (sourceOf(c) === 'mine' || sourceOf(c) === 'uploaded') custom[c] = rowsOf(x); }
+  return {stolperbeatsUltraRecipe:1, note:'Picks only, no firmware. Open it in the STOLPERBEATS ULTRA flasher with your own official file.', base:{version:'163', sha256:U.sha256}, buttons:{...picks}, custom, mods:effSel()};
+}
+function openRecipe(o){
+  try {
+    if (!o || !(o.stolperbeatsUltraRecipe === 1 || o.stolperbeatsFirmwareRecipe === 1) || !o.buttons) throw new Error('it isn’t a recipe');
+    for (const [k, rows] of Object.entries(o.custom || {})) {
+      const rr = (rows || []).map(r => ({ticksPerBeat:+r.ticksPerBeat, stepLengths:(r.stepLengths || []).map(Number)})), bad = B.rowsProblems(rr);
+      if (bad.length) throw new Error(`${k}: ${bad[0]}`);
+      uploaded[freeName(k)] = rr;
+    }
+    const ok = v => v === 'Factory' || B.SLOTS.some(x => v === 'Factory ' + x) || B.MODULE[v] || customs()[v];
+    for (const x of B.SLOTS) if (o.buttons[x] && !ok(o.buttons[x])) throw new Error(`${x}: ${o.buttons[x]} isn't available here`);
+    for (const x of B.SLOTS) picks[x] = o.buttons[x] || 'Factory';
+    if (o.mods) for (const k of B.OPTIONS) sel[k] = !!o.mods[k];
+    saveUploaded(); syncMods(); invalidate(); render();
+    tmsg(`<span class="okc">&#10003;</span> Recipe loaded${o.stolperbeatsFirmwareRecipe ? ' from the visualiser’s Firmware lab (tables only; pick your mods below)' : ''}.`, 'ok');
+    document.getElementById('step2').scrollIntoView({behavior:'smooth', block:'start'});
+  } catch(err) { tmsg(`Couldn't open that recipe: ${esc(err.message)}.`, 'bad'); }
+}
+document.getElementById('recipeBtn').addEventListener('click', () => save(builtName.replace(/\.bin$/, '.recipe.json'), JSON.stringify(recipe(), null, 1), 'application/json'));
+document.getElementById('recipeOpen').addEventListener('click', () => document.getElementById('recipeFile').click());
+document.getElementById('recipeFile').addEventListener('change', async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return; try { openRecipe(JSON.parse(await f.text())); } catch(err) { tmsg(`Couldn't open that recipe: ${esc(err.message)}.`, 'bad'); } });
+
+/* ---------- flashing: the STM32's built-in USB DFU bootloader (DfuSe), the same one dfu-util talks to ---------- */
+const DFU_REQ = {DNLOAD:1,UPLOAD:2,GETSTATUS:3,CLRSTATUS:4,ABORT:6}, ST = {IDLE:2,DNSYNC:3,DNBUSY:4,DNIDLE:5,UPIDLE:9,ERROR:10};
+const dfu = {dev:null, intf:0, alt:0, xfer:1024, segs:[]};
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function parseDfuseLayout(name){   // "@Internal Flash  /0x08000000/16*128Kg" -> sectors
+  const segs = [], parts = String(name || '').split('/');
+  for (let i = 1; i + 1 < parts.length; i += 2) {
+    let addr = parseInt(parts[i].trim(), 16);
+    for (const spec of parts[i+1].split(',')) {
+      const m = spec.trim().match(/^(\d+)\*(\d+)\s*([ KM]?)([a-g])$/i); if (!m) continue;
+      const size = +m[2] * ({K:1024, M:1048576}[m[3].toUpperCase()] || 1), perm = m[4].toLowerCase().charCodeAt(0) - 96;
+      for (let k = 0; k < +m[1]; k++) { segs.push({start:addr, size, erasable:!!(perm&2), writable:!!(perm&4)}); addr += size; }
+    }
+  }
+  return segs;
+}
+const ctl = (req, value) => ({requestType:'class', recipient:'interface', request:req, value, index:dfu.intf});
+async function dOut(req, value, data){ const r = await dfu.dev.controlTransferOut(ctl(req, value), data || new Uint8Array(0)); if (r.status !== 'ok') throw new Error(`USB ${r.status}`); }
+async function dIn(req, value, len){ const r = await dfu.dev.controlTransferIn(ctl(req, value), len); if (r.status !== 'ok') throw new Error(`USB ${r.status}`); return new Uint8Array(r.data.buffer, r.data.byteOffset, r.data.byteLength); }
+async function dStatus(){ const d = await dIn(DFU_REQ.GETSTATUS, 0, 6); return {status:d[0], poll:d[1]|d[2]<<8|d[3]<<16, state:d[4]}; }
+async function dWait(){
+  for (let i = 0; i < 20000; i++) { const s = await dStatus(); if (s.status) throw new Error(`the module reported error ${s.status}`);
+    if (s.state === ST.DNBUSY || s.state === ST.DNSYNC) { await sleep(Math.max(1, s.poll)); continue; } return s; }
+  throw new Error('timed out');
+}
+async function dIdle(){
+  let s = await dStatus(); if (s.state === ST.ERROR) { await dOut(DFU_REQ.CLRSTATUS, 0); s = await dStatus(); }
+  if (s.state !== ST.IDLE) { await dOut(DFU_REQ.ABORT, 0); s = await dStatus(); }
+  if (s.state !== ST.IDLE) throw new Error(`the bootloader is busy (state ${s.state})`);
+}
+async function dCmd(bytes){ await dOut(DFU_REQ.DNLOAD, 0, new Uint8Array(bytes)); const s = await dWait(); if (s.state !== ST.DNIDLE) throw new Error(`command ${bytes[0].toString(16)} failed (state ${s.state})`); }
+const le32 = a => [a&255, (a>>>8)&255, (a>>>16)&255, (a>>>24)&255];
+async function dfuConnect(){
+  if (!navigator.usb) throw new Error('this browser can’t flash over USB. Use Chrome or Edge on a computer, or dfu-util below');
+  const dev = await navigator.usb.requestDevice({filters:[{vendorId:0x0483, productId:0xdf11}]});
+  await dev.open(); if (dev.configuration === null) await dev.selectConfiguration(1);
+  const cands = [];
+  for (const itf of dev.configuration.interfaces) for (const a of itf.alternates)
+    if (a.interfaceClass === 0xfe && a.interfaceSubclass === 1) cands.push({intf:itf.interfaceNumber, alt:a.alternateSetting, name:a.interfaceName || ''});
+  const pick = cands.find(c => /^@Internal Flash/i.test(c.name)) || cands[0];
+  if (!pick) throw new Error('that device isn’t an STM32 DFU bootloader');
+  await dev.claimInterface(pick.intf); await dev.selectAlternateInterface(pick.intf, pick.alt);
+  Object.assign(dfu, {dev, intf:pick.intf, alt:pick.alt, segs:parseDfuseLayout(pick.name)});
+  try { const h = await dev.controlTransferIn({requestType:'standard', recipient:'device', request:6, value:0x0200, index:0}, 9);
+    const tot = new DataView(h.data.buffer).getUint16(2, true), c = await dev.controlTransferIn({requestType:'standard', recipient:'device', request:6, value:0x0200, index:0}, tot);
+    const d = new Uint8Array(c.data.buffer); for (let i = 0; i < d.length && d[i]; i += d[i]) if (d[i+1] === 0x21 && d[i] >= 7) { dfu.xfer = d[i+5] | d[i+6] << 8; break; } } catch(e) {}
+  if (!dfu.segs.length) throw new Error(`can’t read the flash layout ("${pick.name}")`);
+  return pick.name;
+}
+async function dfuFlash(image, onStep){
+  const start = BASE, end = start + image.length, segs = dfu.segs.filter(s => s.start < end && s.start + s.size > start);
+  if (!segs.length || end > dfu.segs[dfu.segs.length-1].start + dfu.segs[dfu.segs.length-1].size) throw new Error('the image doesn’t fit this chip’s flash');
+  if (segs.some(s => !s.erasable || !s.writable)) throw new Error('part of that flash is read-only');
+  await dIdle();
+  for (let i = 0; i < segs.length; i++) { onStep('Erasing', i/segs.length); await dCmd([0x41, ...le32(segs[i].start)]); }
+  const X = dfu.xfer;
+  for (let off = 0; off < image.length; off += X) {
+    onStep('Writing', off/image.length);
+    await dCmd([0x21, ...le32(start + off)]);
+    await dOut(DFU_REQ.DNLOAD, 2, image.subarray(off, Math.min(off + X, image.length)));
+    const s = await dWait(); if (s.state !== ST.DNIDLE) throw new Error(`write failed at ${hx(start + off)}`);
+  }
+  await dIdle(); await dCmd([0x21, ...le32(start)]); await dIdle();
+  const back = new Uint8Array(image.length);
+  for (let off = 0, blk = 2; off < image.length; off += X, blk++) { onStep('Checking', off/image.length);
+    const d = await dIn(DFU_REQ.UPLOAD, blk, Math.min(X, image.length - off)); back.set(d.subarray(0, Math.min(X, image.length - off)), off); }
+  await dIdle();
+  for (let i = 0; i < image.length; i++) if (back[i] !== image[i]) throw new Error(`check failed at ${hx(start + i)}. Flash it again, or flash the official file`);
+  onStep('Starting', 1);
+  try { await dCmd([0x21, ...le32(start)]); await dOut(DFU_REQ.DNLOAD, 0); await dStatus(); } catch(e) {}
+  try { await dfu.dev.close(); } catch(e) {}
+  dfu.dev = null;
+}
+const prog = document.getElementById('prog'), flashStatus = document.getElementById('flashStatus');
+function fmsg(html, cls){ flashStatus.className = 'status show ' + (cls || 'info'); flashStatus.innerHTML = html; }
+function drawFlash(){
+  document.getElementById('flashBtn').disabled = !built || !dfu.dev;
+  document.getElementById('restoreBtn').disabled = !stock || !dfu.dev;
+  document.getElementById('dfuCmd').textContent = `sudo dfu-util -a 0 -s 0x08000000 -D ${built ? builtName : 'your-build.bin'}`;
+}
+document.getElementById('connectBtn').addEventListener('click', async () => {
+  try { const name = await dfuConnect(); fmsg(`<span class="okc">&#10003;</span> Connected to the bootloader (${esc(name.trim() || 'STM32 DFU')}, ${dfu.segs.length} flash sectors, ${dfu.xfer}-byte blocks).`, 'ok'); }
+  catch(err) { if (err.name !== 'NotFoundError') fmsg(`Couldn't connect: ${esc(err.message)}.`, 'bad'); else fmsg('No module picked. It shows up as <b>STM32 BOOTLOADER</b> or <b>DFU in FS Mode</b> once you’ve done BOOT and RESET.'); }
+  drawFlash();
+});
+async function runFlash(image, label){
+  if (!dfu.dev) return;
+  if (!confirm(`Flash ${label} to the module? Keep the USB cable in until it says done.`)) return;
+  prog.hidden = false; prog.value = 0;
+  try {
+    await dfuFlash(image, (what, f) => { prog.value = f; flashStatus.className = 'status show info'; flashStatus.textContent = `${what}… ${Math.round(f*100)}%`; });
+    prog.value = 1; fmsg(`<span class="okc">&#10003;</span> Done: ${esc(label)} is on the module and checked byte for byte. If it doesn’t restart by itself, press RESET.`, 'ok');
+  } catch(err) { fmsg(`Stopped: ${esc(err.message)}. The bootloader is still there: do BOOT and RESET again and flash the official file to get back to normal.`, 'bad'); dfu.dev = null; }
+  drawFlash();
+}
+document.getElementById('flashBtn').addEventListener('click', () => built && runFlash(built, builtName));
+document.getElementById('restoreBtn').addEventListener('click', () => stock && runFlash(stock, stockName || 'the official file'));
+if (navigator.usb) navigator.usb.addEventListener('disconnect', e => { if (e.device === dfu.dev) { dfu.dev = null; drawFlash(); } });
+
+/* ---------- theme ---------- */
+const root = document.documentElement;
+try { const t = localStorage.getItem('stolperbeats-ultra-theme'); if (t) root.setAttribute('data-theme', t); } catch(e) {}
+document.getElementById('themeBtn').addEventListener('click', () => {
+  const dark = root.getAttribute('data-theme') ? root.getAttribute('data-theme') === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  root.setAttribute('data-theme', dark ? 'light' : 'dark');
+  try { localStorage.setItem('stolperbeats-ultra-theme', root.getAttribute('data-theme')); } catch(e) {}
+  render();
+});
+
+window.__ultra = {B, U, picks, sel, load, customs};
+render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+# Never commit firmware images: users bring their own official copy.
+*.bin
+*.hex
+*.dfu
+*.zip
+.DS_Store
