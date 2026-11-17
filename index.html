@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>STOLPERBEATS ULTRA has moved</title>
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://www.thisisbribery.com/stolperbeats/">
+<meta http-equiv="refresh" content="3;url=https://www.thisisbribery.com/stolperbeats/">
+<script>
+(function () {
+  var TARGET = "https://www.thisisbribery.com/stolperbeats/";
+  // Carry this browser's saved tool data (custom Timings, banks, Companion settings) to the new site once.
+  // It travels in the URL fragment, which is never sent to any server.
+  var frag = "";
+  try {
+    var data = {}, n = 0;
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (/^(stolperbeats-|bribeluge-|sealeggs-)/.test(k)) { data[k] = localStorage.getItem(k); n++; }
+    }
+    if (n) {
+      var bytes = new TextEncoder().encode(JSON.stringify(data)), bin = "";
+      for (var j = 0; j < bytes.length; j += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(j, j + 0x8000));
+      var b64 = btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+      if (b64.length < 1500000) frag = "#bx-import=" + b64;
+    }
+  } catch (e) {}
+  function go() { location.replace(TARGET + location.search + frag); }
+  // Retire the old installed Companion app's offline copy, then go.
+  var jobs = [];
+  try {
+    if ("serviceWorker" in navigator) jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) {
+      return Promise.all(rs.map(function (r) { return r.unregister(); }));
+    }));
+    if (window.caches) jobs.push(caches.keys().then(function (ks) {
+      return Promise.all(ks.filter(function (k) { return k.indexOf("bribes-companion-") === 0; }).map(function (k) { return caches.delete(k); }));
+    }));
+  } catch (e) {}
+  Promise.race([Promise.all(jobs), new Promise(function (r) { setTimeout(r, 800); })]).then(go, go);
+})();
+</script>
+<style>
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:#000;color:#f4f1ec;font:17px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;text-align:center;padding:24px;box-sizing:border-box}
+h1{margin:0 0 10px;font-weight:900;font-size:clamp(34px,8vw,72px);line-height:.9;letter-spacing:-.04em;text-transform:uppercase;color:#ff1fd6}
+a{color:#ff1fd6}
+</style>
+</head>
+<body>
+<main>
+  <h1>STOLPERBEATS ULTRA has moved</h1>
+  <p>It now lives at <a href="https://www.thisisbribery.com/stolperbeats/">https://www.thisisbribery.com/stolperbeats/</a>.</p>
+</main>
+</body>
+</html>
