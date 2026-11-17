@@ -6,7 +6,7 @@ Mods by **Bribery** ([@thisisbribery](https://www.instagram.com/thisisbribery/))
 
 A browser tool that adds alt swing tables and new features to **your own copy** of the official Stolperbeats firmware 163, then flashes it over USB.
 
-**[Open the flasher](https://thisisbribery.github.io/stolperbeats-ultra-v1/)**
+**[Open the flasher](https://www.thisisbribery.com/stolperbeats/)**
 
 No firmware is hosted here. You load the official `_MSM_stolperbeats_hw_rev4-163.bin` from [Making Sound Machines](https://makingsoundmachines.com/firmware/), pick your tables and mods, and the page writes a modified copy in your browser. Nothing is uploaded.
 
@@ -15,7 +15,7 @@ No firmware is hosted here. You load the official `_MSM_stolperbeats_hw_rev4-163
 Any of the four Timing buttons (Trip, Shake, Push, Clave) can play:
 
 - its own factory table, or another button's factory table
-- an alt table from the [Stolperbeats visualiser](https://thisisbribery.github.io/stolperbeats_v2/): HOPP, DEEP, SQEZ, CLSTR, FOLD
+- an alt table from the [Stolperbeats visualiser](https://www.thisisbribery.com/stolperbeats/visualiser/): HOPP, DEEP, SQEZ, CLSTR, FOLD
 - your own Timings saved in the visualiser's CREATOR (same browser, they appear under **Yours**)
 - a `.timing.json` you upload (the CREATOR's Export, or a Download tables JSON)
 
