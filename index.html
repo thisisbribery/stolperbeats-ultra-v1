@@ -60,6 +60,13 @@ h1 .ultra{color:var(--accent);letter-spacing:.04em}
 .slots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .slot{border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:8px;align-content:start}
 .slot.changed{border-color:var(--pink);box-shadow:inset 4px 0 0 var(--pink)}
+.slot.rec{border-color:var(--pink);box-shadow:inset 4px 0 0 var(--pink),0 0 0 1px var(--pink);background:color-mix(in srgb,var(--pink) 8%,transparent)}
+.slot.rec .lbl>span:last-child{color:var(--pink);font-weight:700}
+.recline{margin-top:8px;font-size:13px;color:var(--pink)}
+.recline.off{color:var(--muted)}
+.reclink{all:unset;cursor:pointer;color:var(--pink);font-weight:700;text-decoration:underline;text-underline-offset:2px}
+.reclink:focus-visible{outline:2px solid var(--pink);outline-offset:2px}
+.recnote{display:block;margin-top:6px;color:var(--pink)}
 .slot.badslot{border-color:var(--warn);box-shadow:inset 4px 0 0 var(--warn)}
 .slot .lbl{font:700 12px var(--mono);letter-spacing:.08em;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
 .slot .lbl b{color:var(--ink)}
@@ -208,11 +215,12 @@ dialog.risk::backdrop{background:rgba(0,0,0,.55)}
 
 <section class="step" id="step2">
   <h2><span class="num">2</span>Swing tables on the Timing buttons</h2>
-  <p class="hint">Put any table on any of the four Timing buttons: the factory ones, the alt tables from the visualiser, your own Timings from the <a href="https://thisisbribery.github.io/stolperbeats_v2/" target="_blank" rel="noopener">visualiser's CREATOR</a>, or a <code>.timing.json</code> you upload. Each button keeps its other behaviour (accents, Rolls). The picture shows where the 8 steps of a half bar land at Shuffle 1 to 6.</p>
+  <p class="hint">Put any table on any of the four Timing buttons: the factory ones, the alt tables from the visualiser, your own Timings from the <a href="https://thisisbribery.github.io/stolperbeats_v2/" target="_blank" rel="noopener">visualiser's CREATOR</a>, or a <code>.timing.json</code> you upload. Each button keeps its other behaviour (accents, Rolls). The picture shows where the 8 steps of a half bar land at Shuffle 1 to 6. <span class="recnote"><b>Recommended:</b> PUSH and CLAVE start on SQEZ and FOLD, highlighted pink. Swap either back to factory below, or tap <b>All factory</b>.</span></p>
   <div class="tablebar">
     <button class="secondary small" id="uploadBtn" type="button">Upload custom (.timing.json)</button>
     <input type="file" id="timingFile" accept=".json,application/json" multiple hidden>
     <a class="btn secondary small" href="https://thisisbribery.github.io/stolperbeats_v2/" target="_blank" rel="noopener">Make your own in the visualiser &#8599;</a>
+    <button class="secondary small" id="recTables" type="button">Recommended</button>
     <button class="secondary small" id="resetTables" type="button">All factory</button>
   </div>
   <div class="slots" id="slots"></div>
@@ -338,7 +346,9 @@ const ICON = {
   fillcv:'<path d="M3 36h7V14h12v22h6"/><circle cx="38" cy="25" r="7"/><circle cx="38" cy="25" r="2.2"/>'
 };
 const sel = {ratchets:true, pitch:true, fill:true, fillcv:true};
-const picks = {Trip:'Factory', Shake:'Factory', Push:'Factory', Clave:'Factory'};
+// Recommended tables: Push and Clave start on these. Anyone can swap back to factory.
+const RECOMMENDED = {Push:'SQEZ', Clave:'FOLD'};
+const picks = {Trip:'Factory', Shake:'Factory', Push:RECOMMENDED.Push, Clave:RECOMMENDED.Clave};
 let uploaded = {}, mine = {}, stock = null, stockName = '', built = null, builtName = '', builtHash = '', builtCodeHash = '';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const hx = n => '0x' + n.toString(16).toUpperCase().padStart(8,'0');
@@ -416,9 +426,10 @@ function drawSlots(){
   for (const slot of B.SLOTS) {
     if (!(picks[slot] === 'Factory' || picks[slot].startsWith('Factory ') || B.MODULE[picks[slot]] || cs[picks[slot]])) picks[slot] = 'Factory';
     const ch = picks[slot], bad = slotProblems(slot), d = document.createElement('div');
-    d.className = 'slot' + (bad.length ? ' badslot' : ch === 'Factory' ? '' : ' changed');
+    const rec = RECOMMENDED[slot], isRec = rec && ch === rec;
+    d.className = 'slot' + (bad.length ? ' badslot' : ch === 'Factory' ? '' : ' changed') + (isRec && !bad.length ? ' rec' : '');
     const opt = (v, l) => `<option value="${esc(v)}"${v === ch ? ' selected' : ''}>${esc(l)}</option>`;
-    d.innerHTML = `<div class="lbl"><span><b>${slot.toUpperCase()}</b> BUTTON</span><span>${ch === 'Factory' ? 'factory' : sourceOf(ch) === 'factory' ? 'factory table' : sourceOf(ch)}</span></div>
+    d.innerHTML = `<div class="lbl"><span><b>${slot.toUpperCase()}</b> BUTTON</span><span>${isRec ? 'recommended' : ch === 'Factory' ? 'factory' : sourceOf(ch) === 'factory' ? 'factory table' : sourceOf(ch)}</span></div>
       <select aria-label="${slot} button plays">${opt('Factory', 'Factory ' + slot)}
         <optgroup label="Other factory tables">${B.SLOTS.filter(x => x !== slot).map(x => opt('Factory ' + x, 'Factory ' + x)).join('')}</optgroup>
         <optgroup label="Alt tables (visualiser)">${B.STYLES.map(s => opt(s.key, `${s.key}: ${s.blurb}`)).join('')}</optgroup>
@@ -430,7 +441,10 @@ function drawSlots(){
     const notes = rows && !bad.length ? B.rowsNotes(rows) : [];
     d.querySelector('.meta').innerHTML = bad.length ? `<span class="bad">Can't build: ${esc(bad[0])}.</span>` :
       `Ticks per beat, Shuffle 0 to 6: <span style="font-family:var(--mono)">${rows.map(r => r.ticksPerBeat).join(' ')}</span>` + (notes.length ? `<br><span class="amber">${esc(notes.join('; '))}</span>` : '') +
-      '';
+      '' +
+      (isRec ? `<div class="recline"><b>Recommended change.</b> ${esc(rec)} on ${slot}. <button type="button" class="reclink" data-slot="${slot}" data-to="Factory">Back to factory ${slot}</button></div>` :
+       rec && ch === 'Factory' ? `<div class="recline off">Recommended here: ${esc(rec)}. <button type="button" class="reclink" data-slot="${slot}" data-to="${esc(rec)}">Use ${esc(rec)}</button></div>` : '');
+    d.querySelectorAll('.reclink').forEach(b => b.addEventListener('click', () => { picks[b.dataset.slot] = b.dataset.to; invalidate(); render(); }));
     d.querySelector('select').addEventListener('change', e => { picks[slot] = e.target.value; invalidate(); render(); });
     slotsEl.appendChild(d);
   }
@@ -454,6 +468,7 @@ document.getElementById('timingFile').addEventListener('change', async e => {
   invalidate(); render();
 });
 document.getElementById('resetTables').addEventListener('click', () => { for (const s of B.SLOTS) picks[s] = 'Factory'; invalidate(); render(); });
+document.getElementById('recTables').addEventListener('click', () => { for (const s of B.SLOTS) picks[s] = RECOMMENDED[s] || 'Factory'; invalidate(); render(); });
 window.addEventListener('storage', e => { if (e.key === 'stolperbeats-shuffle-map:mine') { loadMine(); render(); } });
 window.addEventListener('focus', () => { const before = JSON.stringify(Object.keys(mine)); loadMine(); if (JSON.stringify(Object.keys(mine)) !== before) render(); });
 
