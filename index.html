@@ -250,7 +250,7 @@ dialog.risk::backdrop{background:rgba(0,0,0,.55)}
   <div class="result" id="result">
     <div class="status show" id="resultStatus"></div>
     <div class="build" style="margin-top:12px">
-      <button id="dlBtn" type="button">Download firmware</button>
+      <button id="dlBtn" type="button" data-bx-gate="stolperbeats">Download firmware</button>
       <button id="notesBtn" type="button" class="secondary">Download build notes</button>
       <button id="recipeBtn" type="button" class="secondary">Save recipe</button>
     </div>
@@ -273,7 +273,7 @@ dialog.risk::backdrop{background:rgba(0,0,0,.55)}
   </ol>
   <div class="build">
     <button id="connectBtn" type="button" class="secondary">Connect</button>
-    <button id="flashBtn" type="button" disabled>Flash my build</button>
+    <button id="flashBtn" type="button" disabled data-bx-gate="stolperbeats" data-bx-gate-again="Flash my build">Flash my build</button>
     <button id="restoreBtn" type="button" class="secondary" disabled>Flash official file</button>
   </div>
   <progress id="prog" value="0" max="1" hidden></progress>
