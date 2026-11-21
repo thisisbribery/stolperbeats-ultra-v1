@@ -62,6 +62,21 @@ Flash your original `_MSM_stolperbeats_hw_rev4-163.bin` (the page's **Flash offi
 - `builder.js`: the build logic (tables and mods), shared with the test scripts
 - `mods.js`: the added code, the call sites, the switches and the reference hashes
 - `assets/`: the coin and icons
+- `LICENSE.md`: the licence (PolyForm Noncommercial 1.0.0 plus additional permissions)
+
+## Licence
+
+Required Notice: Copyright 2026 Bribery (https://thisisbribery.com)
+
+STOLPERBEATS ULTRA is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE.md), plus two additional permissions. Full terms are in [LICENSE.md](LICENSE.md).
+
+- **Free for noncommercial use.** Use it, study it, change it and share it.
+- **Forks are welcome** on the same noncommercial terms. Keep the `Required Notice:` line, include or link the licence, and credit Bribery's Stolperbeats tools.
+- **Make and sell music with it**, including paid gigs, sessions and releases.
+- **Don't sell it.** No selling the firmware, patch data, tables, changed versions, pre-flashed modules or paid packs that include them without written permission.
+- **Making Sound Machines** may use it commercially, for example in official Stolperbeats firmware.
+
+The licence covers Bribery's own work only. Making Sound Machines' firmware and factory timings (Trip, Shake, Push, Clave) stay theirs. For any other commercial use, contact Bribery through [thisisbribery.com](https://thisisbribery.com).
 
 ## Disclaimer
 

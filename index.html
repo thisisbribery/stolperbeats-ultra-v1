@@ -294,6 +294,8 @@ dialog.risk::backdrop{background:rgba(0,0,0,.55)}
   <p>The only thing not tried on hardware is picking and choosing: a build with only some of the mods. Those builds use the same tested code, with nothing new added. Leaving a mod out puts the firmware's own original call back where the mod would hook in, or flips a small switch in the engine that skips that mod's part. Every combination was checked by running the module's own code in a Cortex-M7 emulator: ratchet hits, MIDI notes, Fill on and off, the CV 6 gate, and fills that play the same in every build.</p>
   <h3>Known differences when mods are installed</h3>
   <p>With Ratchets: the Shuffle encoder sets ratchets in Pattern Edit instead of changing the shuffle. With Pitch: Tap in Pattern Edit shows the step's pitch instead of tapping the tempo. With Fill: Linear + Tap switches Fill mode, and while Fill mode is on, tap tempo is off (the tempo encoder still works). Everything else plays exactly like the firmware it was built on.</p>
+  <h3>Licence</h3>
+  <p>STOLPERBEATS ULTRA is licensed under the PolyForm Noncommercial License 1.0.0, with extra permissions to make and sell music with it and for Making Sound Machines to use it commercially (<a href="https://thisisbribery.com/stolperbeats/LICENSE.txt">full licence</a>). Free to use, change and share for noncommercial purposes, forks welcome. Selling the firmware, the tables or pre-flashed modules isn't allowed. Making Sound Machines' firmware and factory timings stay theirs. Required Notice: Copyright 2026 Bribery (https://thisisbribery.com)</p>
 </footer>
 </div>
 
@@ -573,7 +575,7 @@ document.getElementById('notesBtn').addEventListener('click', () => {
   const on = MODS.filter(m => m.key === 'fillcv' ? s.fillcv : s[m.key]);
   if (!on.length) L.push('  none');
   for (const m of on) L.push('', '* ' + m.title, '  ' + strip(m.text), '  Controls: ' + strip(m.ctl), '  Note: ' + strip(m.note));
-  L.push('', 'Rollback: flash your original _MSM_stolperbeats_hw_rev4-163.bin.', 'Unofficial community modification by Bribery (@thisisbribery). Not affiliated with, endorsed by or supported by Making Sound Machines. Use entirely at your own risk.');
+  L.push('', 'Rollback: flash your original _MSM_stolperbeats_hw_rev4-163.bin.', 'Unofficial community modification by Bribery (@thisisbribery). Not affiliated with, endorsed by or supported by Making Sound Machines. Use entirely at your own risk.', '', 'Licence: PolyForm Noncommercial License 1.0.0 plus additional permissions, full terms at https://thisisbribery.com/stolperbeats/LICENSE.txt', 'Required Notice: Copyright 2026 Bribery (https://thisisbribery.com)');
   save(builtName.replace(/\.bin$/, '.notes.txt'), L.join('\n'), 'text/plain');
 });
 /* recipes */
