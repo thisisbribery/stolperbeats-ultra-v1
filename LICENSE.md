@@ -31,7 +31,12 @@ You may use these tools, and firmware built with them, to make, perform, record,
 
 ### Commercial exception for Making Sound Machines
 
-Making Sound Machines, the maker of Stolperbeats, may use, copy, change and distribute Bribery's Stolperbeats work for any purpose, including commercial use, for example by including its tables or mods in official Stolperbeats firmware. This permission is for Making Sound Machines only and can't be passed on, except to users as part of Making Sound Machines' own products.
+Making Sound Machines, the maker of the Stolperbeats, may use, copy, change and distribute Bribery's Stolperbeats work in official Stolperbeats firmware and software and on Stolperbeats units they sell, including for commercial purposes, free of charge, on two conditions:
+
+1. **Credit.** Every release that includes it credits Bribery by name with a link to https://thisisbribery.com, visibly: in the release or firmware notes, and in the manual or product page wherever the feature is described. For example: "Stolperbeats tables and mods by Bribery (thisisbribery.com)". The `Required Notice:` line stays with the code.
+2. **Notice.** Making Sound Machines tells Bribery in writing (email, or a message through https://thisisbribery.com) before the first release that includes it.
+
+This permission is for Making Sound Machines only and can't be passed on, except to users as part of Making Sound Machines's own products. It does not cover selling Bribery's work as a separate paid product, feature or add-on, using it without the credit above, presenting it as someone else's work, exclusive rights, or using it in other products. Those need a separate written agreement with Bribery, which may include payment. A release that doesn't meet the two conditions above isn't covered by this permission.
 
 ## Commercial licence
 
