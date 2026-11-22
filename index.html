@@ -429,9 +429,10 @@ function drawSlots(){
     if (!(picks[slot] === 'Factory' || picks[slot].startsWith('Factory ') || B.MODULE[picks[slot]] || cs[picks[slot]])) picks[slot] = 'Factory';
     const ch = picks[slot], bad = slotProblems(slot), d = document.createElement('div');
     const rec = RECOMMENDED[slot], isRec = rec && ch === rec;
+    const shown = ch.startsWith('Factory ') ? ch.slice(8) : ch;
     d.className = 'slot' + (bad.length ? ' badslot' : ch === 'Factory' ? '' : ' changed') + (isRec && !bad.length ? ' rec' : '');
     const opt = (v, l) => `<option value="${esc(v)}"${v === ch ? ' selected' : ''}>${esc(l)}</option>`;
-    d.innerHTML = `<div class="lbl"><span><b>${slot.toUpperCase()}</b> BUTTON</span><span>${isRec ? 'recommended' : ch === 'Factory' ? 'factory' : sourceOf(ch) === 'factory' ? 'factory table' : sourceOf(ch)}</span></div>
+    d.innerHTML = `<div class="lbl"><span>${ch === 'Factory' ? `<b>${slot.toUpperCase()}</b> BUTTON` : `<b${shown.length > 6 ? ' class="long"' : ''}>${esc(shown.toUpperCase())}</b> IN FACTORY THIS IS ${slot.toUpperCase()}`}</span><span>${isRec ? 'recommended' : ch === 'Factory' ? 'factory' : sourceOf(ch) === 'factory' ? 'factory table' : sourceOf(ch)}</span></div>
       <select aria-label="${slot} button plays">${opt('Factory', 'Factory ' + slot)}
         <optgroup label="Other factory tables">${B.SLOTS.filter(x => x !== slot).map(x => opt('Factory ' + x, 'Factory ' + x)).join('')}</optgroup>
         <optgroup label="Alt tables (visualiser)">${B.STYLES.map(s => opt(s.key, `${s.key}: ${s.blurb}`)).join('')}</optgroup>
